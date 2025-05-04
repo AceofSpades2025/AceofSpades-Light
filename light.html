@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ace of Spades - Lightsaber Duel</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #000;
+      color: #fff;
+      font-family: 'Arial', sans-serif;
+      overflow: hidden;
+      background-image: url('https://images.unsplash.com/photo-1506318137071-a8e063b4bec0?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80');
+      background-size: cover;
+      background-position: center;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      text-align: center;
+    }
+
+    h1 {
+      color: #FFE81F;
+      text-shadow: 0 0 10px rgba(255, 232, 31, 0.7);
+      margin-bottom: 10px;
+    }
+
+    #scoreboard {
+      margin-bottom: 20px;
+      font-size: 18px;
+      color: #FFE81F;
+      text-shadow: 0 0 5px rgba(255, 232, 31, 0.6);
+    }
+
+    .game-area {
+      position: relative;
+      width: 100%;
+      height: 400px;
+      background-color: rgba(0, 0, 0, 0.7);
+      border-radius: 10px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+
+    .player {
+      position: absolute;
+      width: 100px;
+      height: 200px;
+      bottom: 0;
+    }
+
+    .player-1 {
+      left: 20%;
+      background-image: url('https://i.ibb.co/C5BzGZmm/light2.png');
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: bottom;
+    }
+
+    .player-2 {
+      right: 20%;
+      background-image: url('https://i.ibb.co/1YJTr9YS/light1.png');
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: bottom;
+    }
+
+    .lightsaber {
+      position: absolute;
+      height: 10px;
+      width: 0;
+      top: 80px;
+      border-radius: 5px;
+      transition: width 0.1s;
+      box-shadow: 0 0 10px;
+    }
+
+    .player-1 .lightsaber {
+      right: -120px;
+      background-color: #0066ff;
+      box-shadow: 0 0 10px #0066ff;
+    }
+
+    .player-2 .lightsaber {
+      left: -120px;
+      background-color: #ff0000;
+      box-shadow: 0 0 10px #ff0000;
+    }
+
+    .health-bar {
+      position: absolute;
+      top: 20px;
+      width: 200px;
+      height: 20px;
+      background-color: #333;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .health-bar-1 {
+      left: 20px;
+    }
+
+    .health-bar-2 {
+      right: 20px;
+    }
+
+    .health {
+      height: 100%;
+      width: 100%;
+      border-radius: 10px;
+      transition: width 0.3s;
+    }
+
+    .health-1 {
+      background-color: #0066ff;
+    }
+
+    .health-2 {
+      background-color: #ff0000;
+    }
+
+    .controls {
+      margin-bottom: 20px;
+    }
+
+    button {
+      background-color: #333;
+      color: #FFE81F;
+      border: none;
+      padding: 10px 20px;
+      margin: 0 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: all 0.3s;
+    }
+
+    button:hover {
+      background-color: #555;
+      transform: scale(1.05);
+    }
+
+    .game-over {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: rgba(0, 0, 0, 0.8);
+      padding: 20px;
+      border-radius: 10px;
+      display: none;
+      z-index: 10;
+    }
+
+    .instructions {
+      margin-top: 20px;
+      padding: 10px;
+      background-color: rgba(0, 0, 0, 0.7);
+      border-radius: 10px;
+    }
+
+    .attacking.player-1 {
+      animation: attack 0.3s ease-in-out;
+    }
+
+    @keyframes attack {
+      0% { transform: translateX(0); }
+      50% { transform: translateX(30px); }
+      100% { transform: translateX(0); }
+    }
+
+    .attacking.player-2 {
+      /* Player 2 doesn't move */
+    }
+
+    .hit {
+      animation: hit 0.3s ease-in-out;
+    }
+
+    @keyframes hit {
+      0% { filter: brightness(1); }
+      50% { filter: brightness(2); }
+      100% { filter: brightness(1); }
+    }
+
+    .difficulty-controls {
+      margin-top: 10px;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .difficulty-btn {
+      padding: 5px 10px;
+      background-color: #333;
+      color: #FFE81F;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .difficulty-btn.active {
+      background-color: #555;
+      box-shadow: 0 0 10px rgba(255, 232, 31, 0.5);
+    }
+
+    .global-stats {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #ccc;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Star Wars Lightsaber Duel</h1>
+
+    <div id="scoreboard">
+      🏆 Player 1 Wins: <span id="player1-wins">0</span> |
+      Player 2 Wins: <span id="player2-wins">0</span>
+    </div>
+
+    <div class="controls">
+      <button id="pvp-btn">Player vs Player</button>
+      <button id="pvc-btn">Player vs Computer</button>
+      <button id="restart-btn">Restart Game</button>
+    </div>
+
+    <div id="difficulty-controls" class="difficulty-controls" style="display: none;">
+      <button id="easy-btn" class="difficulty-btn">Easy</button>
+      <button id="medium-btn" class="difficulty-btn active">Medium</button>
+      <button id="hard-btn" class="difficulty-btn">Hard</button>
+    </div>
+
+    <div class="game-area">
+      <div class="health-bar health-bar-1">
+        <div class="health health-1" id="health-1"></div>
+      </div>
+
+      <div class="health-bar health-bar-2">
+        <div class="health health-2" id="health-2"></div>
+      </div>
+
+      <div class="player player-1" id="player-1">
+        <div class="lightsaber" id="saber-1"></div>
+      </div>
+
+      <div class="player player-2" id="player-2">
+        <div class="lightsaber" id="saber-2"></div>
+      </div>
+
+      <div class="game-over" id="game-over">
+        <h2 id="winner-text">Player 1 Wins!</h2>
+        <button id="play-again-btn">Play Again</button>
+      </div>
+    </div>
+
+    <div class="global-stats">
+      <p>Global Stats: <span id="global-stats-text">Loading...</span></p>
+    </div>
+
+    <div class="instructions">
+      <h3>How to Play:</h3>
+      <p>Player 1: Press SPACEBAR to attack</p>
+      <p>Player 2: Press ENTER to attack (in PvP mode)</p>
+      <p>First player to deplete the opponent's health wins!</p>
+      <p>Scores are global and shared with all players!</p>
+      <p>Open Source on <a href="https://github.com/AceofSpades2025/AceofSpades-Light" target="_blank">GitHub</a></p>
+    </div>
+  </div>
+
+  <script>
+    const player1 = document.getElementById('player-1');
+    const player2 = document.getElementById('player-2');
+    const saber1 = document.getElementById('saber-1');
+    const saber2 = document.getElementById('saber-2');
+    const health1 = document.getElementById('health-1');
+    const health2 = document.getElementById('health-2');
+    const gameOver = document.getElementById('game-over');
+    const winnerText = document.getElementById('winner-text');
+    const pvpBtn = document.getElementById('pvp-btn');
+    const pvcBtn = document.getElementById('pvc-btn');
+    const restartBtn = document.getElementById('restart-btn');
+    const playAgainBtn = document.getElementById('play-again-btn');
+    const difficultyControls = document.getElementById('difficulty-controls');
+    const easyBtn = document.getElementById('easy-btn');
+    const mediumBtn = document.getElementById('medium-btn');
+    const hardBtn = document.getElementById('hard-btn');
+    const globalStatsText = document.getElementById('global-stats-text');
+
+    const player1WinsEl = document.getElementById('player1-wins');
+    const player2WinsEl = document.getElementById('player2-wins');
+
+    let gameMode = null;
+    let player1Health = 100;
+    let player2Health = 100;
+    let player1Attacking = false;
+    let player2Attacking = false;
+    let gameActive = false;
+    let computerAttackInterval = null;
+    let difficulty = 'medium';
+
+    // Global score tracking
+    let player1Wins = parseInt(localStorage.getItem('player1Wins')) || 0;
+    let player2Wins = parseInt(localStorage.getItem('player2Wins')) || 0;
+
+    // Difficulty settings
+    const difficultySettings = {
+      easy: {
+        attackInterval: [3000, 5000],  // Min and max time between AI attacks
+        damageToPlayer: 15,            // Damage AI does to player
+        damageToAI: 25                 // Damage player does to AI
+      },
+      medium: {
+        attackInterval: [2500, 4500],
+        damageToPlayer: 20,
+        damageToAI: 20
+      },
+      hard: {
+        attackInterval: [1500, 3000],
+        damageToPlayer: 25,
+        damageToAI: 15
+      }
+    };
+
+    // Update global stats display
+    function updateGlobalStats() {
+      const totalGames = player1Wins + player2Wins;
+      if (totalGames > 0) {
+        const p1Percent = Math.round((player1Wins/totalGames)*100);
+        const p2Percent = Math.round((player2Wins/totalGames)*100);
+        globalStatsText.textContent = `${totalGames} games played globally. Player 1: ${p1Percent}%, Player 2: ${p2Percent}%`;
+      } else {
+        globalStatsText.textContent = 'No games played yet';
+      }
+    }
+
+    function updateScoreboard() {
+      player1WinsEl.textContent = player1Wins;
+      player2WinsEl.textContent = player2Wins;
+      updateGlobalStats();
+    }
+
+    function updateHealthBars() {
+      health1.style.width = player1Health + '%';
+      health2.style.width = player2Health + '%';
+    }
+
+    function setDifficulty(level) {
+      difficulty = level;
+      
+      // Update UI
+      easyBtn.classList.remove('active');
+      mediumBtn.classList.remove('active');
+      hardBtn.classList.remove('active');
+      
+      if (level === 'easy') easyBtn.classList.add('active');
+      if (level === 'medium') mediumBtn.classList.add('active');
+      if (level === 'hard') hardBtn.classList.add('active');
+      
+      // Restart computer attacks if in PVC mode
+      if (gameMode === 'pvc' && gameActive) {
+        if (computerAttackInterval) {
+          clearInterval(computerAttackInterval);
+        }
+        startComputerAttacks();
+      }
+    }
+
+    function initGame(mode) {
+      gameMode = mode;
+      player1Health = 100;
+      player2Health = 100;
+      updateHealthBars();
+      gameOver.style.display = 'none';
+      gameActive = true;
+
+      // Show/hide difficulty controls
+      difficultyControls.style.display = mode === 'pvc' ? 'flex' : 'none';
+
+      if (gameMode === 'pvc') {
+        startComputerAttacks();
+      } else if (computerAttackInterval) {
+        clearInterval(computerAttackInterval);
+        computerAttackInterval = null;
+      }
+    }
+
+    function startComputerAttacks() {
+      if (computerAttackInterval) {
+        clearInterval(computerAttackInterval);
+      }
+      
+      const settings = difficultySettings[difficulty];
+      const minDelay = settings.attackInterval[0];
+      const maxDelay = settings.attackInterval[1];
+      
+      // First attack comes after a random delay
+      const initialDelay = Math.random() * (maxDelay - minDelay) + minDelay;
+      
+      setTimeout(() => {
+        if (gameActive) {
+          computerAttackInterval = setInterval(() => {
+            if (gameActive && !player2Attacking) {
+              // Add randomness to AI attacks - sometimes it misses
+              if (Math.random() > 0.2) { // 80% chance to attack
+                player2Attack();
+              }
+            }
+          }, Math.random() * (maxDelay - minDelay) + minDelay);
+        }
+      }, initialDelay);
+    }
+
+    function player1Attack() {
+      if (player1Attacking || !gameActive) return;
+      player1Attacking = true;
+      player1.classList.add('attacking');
+      saber1.style.width = '120px';
+
+      setTimeout(() => {
+        player2.classList.add('hit');
+        
+        // Get damage based on difficulty
+        const damage = gameMode === 'pvc' 
+          ? difficultySettings[difficulty].damageToAI 
+          : 20; // Default damage in PVP
+          
+        player2Health = Math.max(0, player2Health - damage);
+        updateHealthBars();
+
+        setTimeout(() => player2.classList.remove('hit'), 300);
+        checkGameOver();
+
+        setTimeout(() => {
+          saber1.style.width = '0';
+          player1.classList.remove('attacking');
+          player1Attacking = false;
+        }, 200);
+      }, 100);
+    }
+
+        function player2Attack() {
+      if (player2Attacking || !gameActive) return;
+      player2Attacking = true;
+      player2.classList.add('attacking');
+      saber2.style.width = '120px';
+
+      setTimeout(() => {
+        player1.classList.add('hit');
+        
+        // Get damage based on difficulty
+        const damage = gameMode === 'pvc' 
+          ? difficultySettings[difficulty].damageToPlayer 
+          : 20; // Default damage in PVP
+          
+        player1Health = Math.max(0, player1Health - damage);
+        updateHealthBars();
+
+        setTimeout(() => player1.classList.remove('hit'), 300);
+        checkGameOver();
+
+        setTimeout(() => {
+          saber2.style.width = '0';
+          player2.classList.remove('attacking');
+          player2Attacking = false;
+        }, 200);
+      }, 100);
+    }
+
+    function checkGameOver() {
+      if (player1Health <= 0) {
+        endGame('Player 2');
+      } else if (player2Health <= 0) {
+        endGame('Player 1');
+      }
+    }
+
+    function endGame(winner) {
+      gameActive = false;
+      winnerText.textContent = winner + ' Wins!';
+      gameOver.style.display = 'block';
+
+      if (winner === 'Player 1') {
+        player1Wins++;
+        localStorage.setItem('player1Wins', player1Wins);
+      } else {
+        player2Wins++;
+        localStorage.setItem('player2Wins', player2Wins);
+      }
+
+      updateScoreboard();
+
+      if (computerAttackInterval) {
+        clearInterval(computerAttackInterval);
+        computerAttackInterval = null;
+      }
+    }
+
+    // Event listeners
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') {
+        player1Attack();
+      } else if (e.code === 'Enter' && gameMode === 'pvp') {
+        player2Attack();
+      }
+    });
+
+    pvpBtn.addEventListener('click', () => initGame('pvp'));
+    pvcBtn.addEventListener('click', () => initGame('pvc'));
+    restartBtn.addEventListener('click', () => initGame(gameMode || 'pvp'));
+    playAgainBtn.addEventListener('click', () => initGame(gameMode || 'pvp'));
+
+    // Difficulty button listeners
+    easyBtn.addEventListener('click', () => setDifficulty('easy'));
+    mediumBtn.addEventListener('click', () => setDifficulty('medium'));
+    hardBtn.addEventListener('click', () => setDifficulty('hard'));
+
+    // Add rapid attack capability with key holding
+    let spacebarHeld = false;
+    let enterHeld = false;
+    let rapidAttackInterval = null;
+
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' && !spacebarHeld) {
+        spacebarHeld = true;
+        player1Attack();
+        
+        // Enable rapid attacks if key is held down
+        rapidAttackInterval = setInterval(() => {
+          if (spacebarHeld && !player1Attacking) {
+            player1Attack();
+          }
+        }, 400); // Rapid attack every 400ms
+      } else if (e.code === 'Enter' && !enterHeld && gameMode === 'pvp') {
+        enterHeld = true;
+        player2Attack();
+        
+        // Enable rapid attacks if key is held down
+        rapidAttackInterval = setInterval(() => {
+          if (enterHeld && !player2Attacking) {
+            player2Attack();
+          }
+        }, 400); // Rapid attack every 400ms
+      }
+    });
+
+    document.addEventListener('keyup', (e) => {
+      if (e.code === 'Space') {
+        spacebarHeld = false;
+        if (rapidAttackInterval) {
+          clearInterval(rapidAttackInterval);
+        }
+      } else if (e.code === 'Enter') {
+        enterHeld = false;
+        if (rapidAttackInterval) {
+          clearInterval(rapidAttackInterval);
+        }
+      }
+    });
+
+    // Mobile support - touch areas for attacks
+    const gameArea = document.querySelector('.game-area');
+    
+    gameArea.addEventListener('touchstart', (e) => {
+      const touchX = e.touches[0].clientX;
+      const gameAreaRect = gameArea.getBoundingClientRect();
+      const gameAreaMidpoint = gameAreaRect.left + gameAreaRect.width / 2;
+      
+      if (touchX < gameAreaMidpoint) {
+        // Left side - Player 1 attack
+        player1Attack();
+      } else if (gameMode === 'pvp') {
+        // Right side - Player 2 attack (only in PvP mode)
+        player2Attack();
+      }
+    });
+
+    // Initialize game and scores
+    updateScoreboard();
+    initGame('pvp');
+  </script>
+</body>
+</html>
+
